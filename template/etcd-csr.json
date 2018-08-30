@@ -1,0 +1,19 @@
+{
+  "CN": "etcd",
+  "hosts": [
+    HOST
+  ],
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "CN",
+      "ST": "shanghai",
+      "L": "shanghai",
+      "O": "k8s",
+      "OU": "System"
+    }
+  ]
+}
