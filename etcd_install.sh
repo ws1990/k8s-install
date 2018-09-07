@@ -15,7 +15,6 @@ do
   if [ "$ip_addr_result" != "" ];then
     current_ip=${ip_arr[$i]}
     current_index=`expr $i + 1`
-    echo "currentIP = $current_ip; current_index = $current_index"
   fi
 done
 

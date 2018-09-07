@@ -1,5 +1,47 @@
 #!/bin/bash
-echo "安装最新版本的docker"
+
+# ip数组
+ip_arr=($1)
+# 是否主master。1 是；0 不是
+is_first_master=$2
+
+
+pull_image() {
+  images=(etcd-amd64:3.2.18 kube-apiserver-amd64:v1.11.2 kube-controller-manager-amd64:v1.11.2 kube-scheduler-amd64:v1.11.2 kube-proxy-amd64:v1.11.2 pause:3.1 coredns:1.1.3)
+  for imageName in ${images[@]} ; do
+    if [ "`docker images | grep ${imageName%:*}`" == "" ];then
+      docker pull registry.cn-hangzhou.aliyuncs.com/ws_k8s/$imageName
+      docker tag registry.cn-hangzhou.aliyuncs.com/ws_k8s/$imageName k8s.gcr.io/$imageName
+      docker rmi registry.cn-hangzhou.aliyuncs.com/ws_k8s/$imageName
+    fi
+  done
+}
+
+export_image() {
+  images=(`docker images | awk '{print $1}'`)
+  versions=(`docker images | awk '{print $2}'`)
+
+  for i in $(seq 0 ${#images[*]}); do
+    currentImage=${images[$i]}
+    currentVersion=${versions[$i]}
+
+    if [ "$currentImage" == "REPOSITORY" ] || [ "$currentImage" == "" ];then
+      continue
+    fi
+
+    imgFile=$1/${currentImage//\//_}-$currentVersion.tar
+    echo $imgFile
+
+    docker save -o $imgFile $currentImage
+  done
+}
+
+import_image() {
+  for img in `ls images`; do
+    docker load < images/$img
+  done
+}
+
 
 # 1. 安装最新docker
 if [ "`rpm -qa | grep docker-ce`" == "" ];then
@@ -11,11 +53,29 @@ if [ "`rpm -qa | grep docker-ce`" == "" ];then
   systemctl enable docker
 fi
 
-# 2. pull需要的images，并重新打标签
-images=(etcd-amd64:3.2.18)
-for imageName in ${images[@]} ; do
-  docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/$imageName
-  docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/$imageName k8s.gcr.io/$imageName
-  docker rmi registry.cn-hangzhou.aliyuncs.com/google_containers/$imageName
-done
 
+# 2. pull镜像
+image_path="images"
+if [ ! -d "$image_path" ];then
+  mkdir $image_path
+fi
+if [ $is_first_master -eq 1 ];then
+  # 如果是主master，则从云服务器下载镜像
+  pull_image
+
+  # 导出镜像
+  export_image $image_path
+  
+  # 分发镜像，ip地址从第二个开始，自己不需要分发
+  for((i=1;i<${#ip_arr[@]};i++))
+  do
+    scp -r $image_path root@${ip_arr[$i]}:/root/
+  done
+else 
+  # 直接导入镜像
+  import_image $image_path
+fi
+
+
+# 3. 清理
+rm -rf images
