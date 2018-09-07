@@ -1,22 +1,15 @@
 #!/bin/bash
 echo '开始安装etcd'
 
-# 0. 读取并解析配置文件永远在最开始
-source ./kubernetes.conf
 # ip数组
-ip_arr=(${master_ip//,/ })
+ip_arr=($1)
 # 当前IP
-current_ip=""
-# 当前IP在数组中的索引，从1开始
-current_index=0
-for((i=0;i<${#ip_arr[@]};i++))
-do
-  ip_addr_result=`ip addr | grep ${ip_arr[$i]}`
-  if [ "$ip_addr_result" != "" ];then
-    current_ip=${ip_arr[$i]}
-    current_index=`expr $i + 1`
-  fi
-done
+current_ip=$2
+# 是否主master。1 是；0 不是
+is_first_master=$3
+# 当前节点在所有节点中的索引，从1开始
+current_index=$4
+
 
 # 生成密钥文件
 generate_cert_files(){
@@ -30,7 +23,8 @@ generate_cert_files(){
 
   # 替换模版文件
   cp ./template/*.json .
-  ip_json=${master_ip/,/\",\"}
+  ip_str=${ip_arr[*]}
+  ip_json=${ip_str/ /\",\"}
   sed -i "s/HOST/\"$ip_json\"/g" etcd-csr.json
   cat etcd-csr.json
 
@@ -57,7 +51,7 @@ generate_cert_files(){
 }
 
 # 1. 判断是否是主的master节点，如果是，则生成密钥文件并分发
-if [ $current_index -eq 1 ];then
+if [ $is_first_master -eq 1 ];then
   echo "当前节点为主master节点，需要生成密钥文件"
   generate_cert_files 
 fi
