@@ -60,9 +60,5 @@ load_balancer_port=6443 				# 负载均衡的端口
 ```
 
 
-## 四、错误解决
-1. unable to get URL "https://dl.k8s.io/release/stable-1.11.txt": Get https://storage.googleapis.com/kubernetes-release/release/stable-1.11.txt: read tcp 10.0.2.15:43236->216.58.200.16:443: read: connection reset by peer
-
-
-## 五、参考网址
+## 四、参考网址
 [kubernetes官方安装手册](https://kubernetes.io/docs/setup/independent/high-availability/)
