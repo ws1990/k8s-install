@@ -116,3 +116,5 @@ $docker_cmd
 etcd_check="etcdctl --ca-file=/etc/ssl/certs/ca.pem --cert-file=/etc/ssl/certs/etcd.pem --key-file=/etc/ssl/certs/etcd-key.pem --endpoints=$check_cluster_info cluster-health"
 echo "当所有节点都安装etcd完成后，请通过 docker exec -it etcd bin/sh 进入容器，并运行以下命令检查"
 echo "$etcd_check"
+touch etcd_check.txt
+echo "$etcd_check" > etcd_check.txt
