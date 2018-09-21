@@ -41,11 +41,12 @@ ssh-copy-id -i ~/.ssh/id_rsa.pub 192.168.56.52   # 其它节点命令一样，�
 
 ### 2. 安装
 ```shell
-# 1. 下载压缩包到master-1节点，并解压
+# 1. 下载压缩包到master-1节点，并解压（如果下载的是其它分支或者tag，请注意压缩包和解压后的目录名，不要照搬命令）
 cd /root
-curl -fSL xxx -o xxx.tar.gz
-tar -xvf xxx.tar.gz
-rm -f xxx.tar.gz
+wget https://github.com/ws1990/k8s-install/archive/master.zip
+unzip master.zip
+rm -f master.zip
+cd k8s-install-master
 
 # 2. 修改配置文件kubernetes.conf
 vim kubernetes.conf
