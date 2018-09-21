@@ -4,7 +4,7 @@
 ip_arr=($1)
 # 是否主master。1 是；0 不是
 is_first_master=$2
-
+install_path=`pwd`
 
 pull_image() {
   #image_repo='registry.cn-hangzhou.aliyuncs.com/ws_k8s'
@@ -91,7 +91,7 @@ if [ $is_first_master -eq 1 ];then
   # 分发镜像，ip地址从第二个开始，自己不需要分发
   for((i=1;i<${#ip_arr[@]};i++))
   do
-    scp -r $image_path root@${ip_arr[$i]}:/root/
+    scp -r $image_path root@${ip_arr[$i]}:$install_path
   done
 else 
   # 直接导入镜像

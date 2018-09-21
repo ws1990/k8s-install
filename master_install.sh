@@ -17,7 +17,7 @@ is_first_master=0
 if [ $current_index -eq 1 ];then
   is_first_master=1
 fi
-
+install_path=`pwd`
 
 # 1. 安装指定版本的kubelet kubectl kubeadm
 if [ ! -e "/etc/yum.repos.d/kubernetes.repo" ];then
@@ -75,19 +75,22 @@ etcd:
 networking:
   podSubnet: "10.244.0.0/16"
 EOF
-cat kubeadm-config.yaml
+#cat kubeadm-config.yaml
 
 # 3. 初始化master
+echo "执行kubeadm init"
 # 禁用swap
 sed -i 's/^\/dev\/mapper\/centos-swap/#\/dev\/mapper\/centos-swap/g' /etc/fstab
 swapoff -a
 touch tmp.txt
-echo "执行kubeadm init"
+kubeadm init --config kubeadm-config.yaml --ignore-preflight-errors Port-10250 | tee tmp.txt
+
+# 设置环境变量，避免在使用kubectl时报错
 if [ "`cat ~/.bash_profile | grep KUBECONFIG`" == "" ];then
   echo "export KUBECONFIG=/etc/kubernetes/admin.conf" >> ~/.bash_profile
 fi
 export KUBECONFIG=/etc/kubernetes/admin.conf
-kubeadm init --config kubeadm-config.yaml --ignore-preflight-errors Port-10250 | tee tmp.txt
+
 
 # 如果是主的master节点
 if [ $is_first_master -eq 1 ];then
@@ -111,7 +114,7 @@ if [ $is_first_master -eq 1 ];then
   # 分发join.sh给其它node节点
   for((i=0;i<${#node_ip_arr[@]};i++))
   do
-    scp join.sh root@${node_ip_arr[$i]}:/root/
+    scp join.sh root@${node_ip_arr[$i]}:$install_path
   done
 fi
 

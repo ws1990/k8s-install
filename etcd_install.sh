@@ -9,12 +9,11 @@ current_ip=$2
 is_first_master=$3
 # 当前节点在所有节点中的索引，从1开始
 current_index=$4
-
+install_path=`pwd`
 
 # 生成密钥文件
 generate_cert_files(){
   # 下载所需工具
-  install_path=`pwd`
   if [ ! -e "cfssl" ];then
     curl -o ./cfssl https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
     curl -o ./cfssljson https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
@@ -26,7 +25,7 @@ generate_cert_files(){
   ip_str=${ip_arr[*]}
   ip_json=${ip_str/ /\",\"}
   sed -i "s/HOST/\"$ip_json\"/g" etcd-csr.json
-  cat etcd-csr.json
+  #cat etcd-csr.json
 
   # 生成密钥
   if [ ! -d "/etc/kubernetes/pki/etcd" ];then
@@ -36,24 +35,24 @@ generate_cert_files(){
   cd /etc/kubernetes/pki/etcd
   $install_path/cfssl gencert -initca ca-csr.json | $install_path/cfssljson -bare ca -
   $install_path/cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=server etcd-csr.json | $install_path/cfssljson -bare etcd
-
-  # 将密钥文件分发到从master节点
-  for((i=1;i<${#ip_arr[@]};i++))
-  do  
-    ssh root@${ip_arr[$i]} "mkdir -p /etc/kubernetes/pki/etcd"
-    scp ./* root@${ip_arr[$i]}:/etc/kubernetes/pki/etcd
-  done
-
-  # 清理
-  cd $install_path
-  rm -f ./cfssl*
-  rm -f ./*.json
 }
 
 # 1. 判断是否是主的master节点，如果是，则生成密钥文件并分发
 if [ $is_first_master -eq 1 ];then
   echo "当前节点为主master节点，需要生成密钥文件"
   generate_cert_files 
+
+  # 将密钥文件分发到从master节点
+  for((i=1;i<${#ip_arr[@]};i++))
+  do
+    ssh root@${ip_arr[$i]} "mkdir -p /etc/kubernetes/pki/etcd"
+    scp ./* root@${ip_arr[$i]}:/etc/kubernetes/pki/etcd
+  done
+
+  # 清理
+  cd $install_path
+  #rm -f ./cfssl*
+  rm -f ./*.json
 fi
 
 
