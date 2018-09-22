@@ -14,7 +14,7 @@ install_path=`pwd`
 # 1. 分发安装脚本到其它服务器
 for((i=1;i<${#all_ip_arr[@]};i++))
 do
-  scp -r $install_path root@node-1:$install_path
+  scp -r $install_path root@${all_ip_arr[$i]}:$install_path
 done
 
 
