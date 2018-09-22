@@ -47,6 +47,7 @@ wget https://github.com/ws1990/k8s-install/archive/master.zip
 unzip master.zip
 rm -f master.zip
 cd k8s-install-master
+chmod +x *.sh
 
 # 2. 修改配置文件kubernetes.conf
 vim kubernetes.conf
