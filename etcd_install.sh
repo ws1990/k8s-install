@@ -17,8 +17,8 @@ generate_cert_files(){
   if [ ! -e "cfssl" ];then
     curl -o ./cfssl https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
     curl -o ./cfssljson https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
-    chmod +x cfssl*
   fi
+  chmod +x cfssl*
 
   # 替换模版文件
   cp ./template/*.json .
