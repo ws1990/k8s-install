@@ -83,7 +83,7 @@ export KUBECONFIG=/etc/kubernetes/admin.conf
 if [ $is_first_master -eq 1 ];then
   echo "主节点安装pod network"
   cp template/*.yaml .
-  sed -i "s/<CURRENT_IP>/${current_ip}/g" calico.yml
+  sed -i "s/<CURRENT_IP>/${current_ip}/g" calico.yaml
   kubectl apply -f rbac-kdd.yaml
   kubectl apply -f calico.yaml
 
