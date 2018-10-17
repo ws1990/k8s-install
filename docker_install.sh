@@ -58,7 +58,6 @@ import_image() {
     imageName=${img#*_}
     imageName=k8s.gcr.io/${imageName%-*}
     if [ "`docker images | grep ${imageName%:*}`" == "" ];then
-      echo "导入镜像 $imageName"
       docker load < images/$img
     fi
   done
