@@ -6,62 +6,47 @@ ip_arr=($1)
 is_first_master=$2
 install_path=`pwd`
 
+image_array=(k8s.gcr.io/etcd-amd64:3.2.18 k8s.gcr.io/kube-apiserver-amd64:v1.11.2 k8s.gcr.io/kube-controller-manager-amd64:v1.11.2 k8s.gcr.io/kube-scheduler-amd64:v1.11.2 k8s.gcr.io/kube-proxy-amd64:v1.11.2 k8s.gcr.io/pause:3.1 k8s.gcr.io/coredns:1.1.3 quay.io/calico/node:v3.1.3 quay.io/calico/cni:v3.1.3)
+image_repo='registry.cn-hangzhou.aliyuncs.com/ws_k8s'
+
 pull_image() {
-  #image_repo='registry.cn-hangzhou.aliyuncs.com/ws_k8s'
-  image_repo='mirrorgooglecontainers'
-  images=(etcd-amd64:3.2.18 kube-apiserver-amd64:v1.11.2 kube-controller-manager-amd64:v1.11.2 kube-scheduler-amd64:v1.11.2 kube-proxy-amd64:v1.11.2 pause:3.1)
-  for imageName in ${images[@]} ; do
-    if [ "`docker images | grep ${imageName%:*}`" == "" ];then
-      docker pull $image_repo/$imageName
-      docker tag $image_repo/$imageName k8s.gcr.io/$imageName
-      docker rmi $image_repo/$imageName
-    fi
-  done
-
-  # coredns 特殊处理，因为mirrorgooglecontainers这个源没有该镜像。懒惰的家伙！！！
-  if [ "`docker images | grep coredns`" == "" ];then
-    docker pull coredns/coredns:1.1.3
-    docker tag coredns/coredns:1.1.3 k8s.gcr.io/coredns:1.1.3
-    docker rmi coredns/coredns:1.1.3
-  fi
-
-  # quay.io 单独处理
-  quayio_images=(quay.io/calico/node:v3.1.3 quay.io/calico/cni:v3.1.3)
-  for imageName in ${quayio_images[@]} ; do
-    if [ "`docker images | grep ${imageName%:*}`" == "" ];then
-      docker pull $imageName
+  for image in ${image_array[@]} ; do
+    image_name=${image%:*}
+    if [ "`docker images | grep ${image_name}`" == "" ];then
+      ali_image=${image_repo}/${image//\//_}
+      docker pull ${ali_image}
+      docker tag ${ali_image} ${image}
+      docker rmi ${ali_image}
     fi
   done
 }
 
 export_image() {
-  images=(`docker images | awk '{print $1}'`)
-  versions=(`docker images | awk '{print $2}'`)
-
-  for i in $(seq 0 ${#images[*]}); do
-    currentImage=${images[$i]}
-    currentVersion=${versions[$i]}
-
-    if [ "$currentImage" == "REPOSITORY" ] || [ "$currentImage" == "" ];then
-      continue
+  for image in ${image_array[@]} ; do
+    image_name=${image%:*}
+    # 如果本地没有该镜像，则不导出（一般不会出现该情况）
+    if [ "`docker images | grep ${image_name}`" == "" ];then
+      continue;
     fi
 
-    imgFile=$1/${currentImage//\//_}-$currentVersion.tar
-    echo $imgFile
+    image_file=${image//\//_}.tar
+    echo $image_file
 
-    docker save -o $imgFile $currentImage
+    docker save -o $image_file $image_name
   done
 }
 
 import_image() {
-  for img in `ls images`; do
-    imageName=${img#*_}
-    imageName=k8s.gcr.io/${imageName%-*}
-    if [ "`docker images | grep ${imageName%:*}`" == "" ];then
-      docker load < images/$img
+  for image in ${image_array[@]} ; do
+    image_name=${image%:*}
+    # 如果本地没有该镜像，则从文件导入
+    if [ "`docker images | grep ${image_name}`" == "" ];then
+      image_file=${image//\//_}.tar
+      docker load < images/$image_file
     fi
   done
 }
+
 
 
 # 1. 安装最新docker
