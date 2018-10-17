@@ -60,7 +60,7 @@ etcd:
     certFile: /etc/kubernetes/pki/etcd/etcd.pem
     keyFile: /etc/kubernetes/pki/etcd/etcd-key.pem
 networking:
-  podSubnet: "10.244.0.0/16"
+  podSubnet: "192.168.0.0/16"
 EOF
 #cat kubeadm-config.yaml
 
@@ -82,7 +82,10 @@ export KUBECONFIG=/etc/kubernetes/admin.conf
 # 如果是主的master节点
 if [ $is_first_master -eq 1 ];then
   echo "主节点安装pod network"
-  kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+  cp template/*.yaml .
+  sed -i "s/<CURRENT_IP>/${current_ip}/g" calico.yml
+  kubectl apply -f rbac-kdd.yaml
+  kubectl apply -f calico.yaml
 
   # 生成join.sh
   echo "#!/bin/bash" > join.sh

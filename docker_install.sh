@@ -26,7 +26,7 @@ pull_image() {
   fi
 
   # quay.io 单独处理
-  quayio_images=(quay.io/calico/node:v3.1.3 quay.io/calico/cni:v3.1.3 quay.io/coreos/flannel:v0.10.0-amd64)
+  quayio_images=(quay.io/calico/node:v3.1.3 quay.io/calico/cni:v3.1.3)
   for imageName in ${quayio_images[@]} ; do
     if [ "`docker images | grep ${imageName%:*}`" == "" ];then
       docker pull $imageName
