@@ -22,14 +22,17 @@ pull_image() {
 }
 
 export_image() {
-  for image in ${image_array[@]} ; do
+  for image in ${image_array[@]}; do
     image_name=${image%:*}
     # 如果本地没有该镜像，则不导出（一般不会出现该情况）
     if [ "`docker images | grep ${image_name}`" == "" ];then
       continue;
     fi
-
-    image_file=${image//\//_}.tar
+    image_dir="images"
+    if [ ! -d "$image_dir" ]; then
+      mkdir -p $image_dir
+    fi
+    image_file=$image_dir/${image//\//_}.tar
     echo $image_file
 
     docker save -o $image_file $image_name
