@@ -67,7 +67,10 @@ EOF
 # 3. 初始化master
 echo "执行kubeadm init"
 # 禁用swap
-sed -i 's/^\/dev\/mapper\/centos-swap/#\/dev\/mapper\/centos-swap/g' /etc/fstab
+str_arr=(`cat /etc/fstab | grep '^/dev/mapper/.*swap'`)
+str=${str_arr[0]}
+str=${str//\//\\\/}
+sed -i "s/${str}/#${str}/g" /etc/fstab
 swapoff -a
 touch tmp.txt
 kubeadm init --config kubeadm-config.yaml --ignore-preflight-errors Port-10250 | tee tmp.txt
