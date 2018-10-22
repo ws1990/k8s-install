@@ -6,7 +6,10 @@ cp template/k8s.conf /etc/sysctl.d/
 sysctl --system
 
 # 禁用swap
-sed -i 's/^\/dev\/mapper\/centos-swap/#\/dev\/mapper\/centos-swap/g' /etc/fstab
+str_arr=(`cat /etc/fstab | grep '^/dev/mapper/.*swap'`)
+str=${str_arr[0]}
+str=${str//\//\\\/}
+sed -i "s/${str}/#${str}/g" /etc/fstab
 swapoff -a
 
 if [ "`rpm -qa | grep kube`" == "" ];then
