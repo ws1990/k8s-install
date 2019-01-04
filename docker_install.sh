@@ -57,7 +57,7 @@ if [ "`rpm -qa | grep docker-ce`" == "" ];then
   yum install -y yum-utils
   yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
   yum makecache fast
-  yum -y install docker-ce
+  yum -y install docker-ce-18.06.1.ce-3.el7.x86_64
   systemctl start docker
   systemctl enable docker
 fi
