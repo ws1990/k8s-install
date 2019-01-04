@@ -47,11 +47,11 @@ wget https://github.com/ws1990/k8s-install/archive/master.zip
 unzip master.zip
 rm -f master.zip
 cd k8s-install-master
-chmod +x *.sh
 
 # 2. 修改配置文件kubernetes.conf
 vim kubernetes.conf
 
+hostname=master-1,master-2,node-1,node-2 # 所有的hostname，先master，后node，与master_ip，node_ip的顺序一一对应
 master_ip=192.168.56.51,192.168.56.52 	# 所有master节点的ip，第一个为主master节点
 node_ip=192.168.56.53,192.168.56.54 	# 所有node节点的ip
 load_balancer_dns=192.168.56.50 		# 负载均衡的虚拟IP
