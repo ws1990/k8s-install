@@ -23,7 +23,8 @@ generate_cert_files(){
   # 替换模版文件
   cp ./template/*.json .
   ip_str=${ip_arr[*]}
-  ip_json=${ip_str/ /\",\"}
+  # 将空格全部替换，注意全部替换是两个斜杠，这儿之前有bug，哈哈哈
+  ip_json=${ip_str// /\",\"}
   sed -i "s/HOST/\"$ip_json\"/g" etcd-csr.json
   #cat etcd-csr.json
 
