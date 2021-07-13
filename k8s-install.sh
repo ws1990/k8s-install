@@ -1,5 +1,19 @@
 #!/bin/bash
 
+# 0. 系统设置
+# 禁用selinux
+setenforce 0
+sed -i 's/^SELINUX=enforcing$/SELINUX=disable/' /etc/selinux/config
+# 关闭防火墙
+systemctl disable firewalld
+systemctl stop firewalld
+# 禁用swap
+str_arr=(`cat /etc/fstab | grep '^/dev/mapper/.*swap'`)
+str=${str_arr[0]}
+str=${str//\//\\\/}
+sed -i "s/${str}/#${str}/g" /etc/fstab
+swapoff -a
+
 # 1. 安装kubeadm
 # 1.1 允许 iptables 检查桥接流量
 modprobe br_netfilter
@@ -47,8 +61,6 @@ repo_gpgcheck=1
 gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
 EOF
 
-setenforce 0
-sed -i 's/^SELINUX=enforcing$/SELINUX=disable/' /etc/selinux/config
 if [ "`rpm -qa | grep kube`" == "" ];then
   version="1.21.2-0"
   yum install -y kubelet-$version.x86_64 kubeadm-$version.x86_64 kubectl-$version.x86_64 --disableexcludes=kubernetes
@@ -56,3 +68,10 @@ if [ "`rpm -qa | grep kube`" == "" ];then
   systemctl daemon-reload
 fi
 systemctl enable --now kubelet
+
+# 1.4 引导集群master
+# coredns镜像需要特殊下载，因为阿里镜像不存在
+docker pull coredns/coredns:1.8.0
+docker tag coredns/coredns:1.8.0 registry.aliyuncs.com/google_containers/coredns:v1.8.0
+
+kubeadm init --config kube-config.yaml --v=5

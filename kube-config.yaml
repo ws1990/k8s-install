@@ -9,7 +9,7 @@ bootstrapTokens:
   - authentication
 kind: InitConfiguration
 localAPIEndpoint:
-  advertiseAddress: 1.2.3.4
+  advertiseAddress: 192.168.56.51
   bindPort: 6443
 nodeRegistration:
   criSocket: /var/run/dockershim.sock
@@ -33,4 +33,5 @@ kubernetesVersion: 1.21.0
 networking:
   dnsDomain: cluster.local
   serviceSubnet: 10.96.0.0/12
+  podSubnet: 192.168.0.0/16
 scheduler: {}
