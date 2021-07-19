@@ -1,85 +1,85 @@
 #!/bin/bash
 
-# 0. 系统设置
-# 禁用selinux
-setenforce 0
-sed -i 's/^SELINUX=enforcing$/SELINUX=disable/' /etc/selinux/config
-# 关闭防火墙
-systemctl disable firewalld
-systemctl stop firewalld
-# 禁用swap
-str_arr=(`cat /etc/fstab | grep '^/dev/mapper/.*swap'`)
-str=${str_arr[0]}
-str=${str//\//\\\/}
-sed -i "s/${str}/#${str}/g" /etc/fstab
-swapoff -a
+# 0. 读取并解析配置文件永远在最开始
+source ./kubernetes.conf
+# ip数组
+master_ip_arr=(${master_ip//,/ })
+node_ip_arr=(${node_ip//,/ })
+all_ip_arr=(${master_ip_arr[@]} ${node_ip_arr[@]})
+hostname_arr=(${hostname//,/ })
+# 主节点IP
+first_master_ip=${master_ip_arr[0]}
+install_path=`pwd`
 
-# 1. 安装kubeadm
-# 1.1 允许 iptables 检查桥接流量
-modprobe br_netfilter
+ssh-keygen -t rsa
+for((i=1;i<${#all_ip_arr[@]};i++))
+do
+  ssh-copy-id -i ~/.ssh/id_rsa.pub ${all_ip_arr[$i]}
+done
 
-cat <<EOF | tee /etc/modules-load.d/k8s.conf
-br_netfilter
-EOF
 
-cat <<EOF | tee /etc/sysctl.d/k8s.conf
-net.bridge.bridge-nf-call-ip6tables = 1
-net.bridge.bridge-nf-call-iptables = 1
-EOF
-sysctl --system
+# 1. 分发安装脚本到其它服务器
+for((i=1;i<${#all_ip_arr[@]};i++))
+do
+  scp -r $install_path root@${all_ip_arr[$i]}:$install_path
+done
 
-# 1.2 安装docker
-mkdir /etc/docker
-cat <<EOF | tee /etc/docker/daemon.json
-{
-  "exec-opts": ["native.cgroupdriver=systemd"],
-  "registry-mirrors": [
-    "https://vspbbu1z.mirror.aliyuncs.com",
-    "https://registry.docker-cn.com",
-    "https://docker.mirrors.ustc.edu.cn",
-    "https://hub-mirror.c.163.com"
-  ]
-}
-systemctl daemon-reload
-EOF
-if [ "`rpm -qa | grep docker-ce`" == "" ];then
-  yum install -y yum-utils
-  yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
-  yum -y install docker-ce-20.10.7-3.el7.x86_64
-  systemctl enable docker
-  systemctl start docker
-fi
 
-# 1.3 安装kubelet
-cat <<EOF | tee /etc/yum.repos.d/kubernetes.repo
-[kubernetes]
-name=Kubernetes
-baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
-enabled=1
-gpgcheck=1
-repo_gpgcheck=1
-gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
-EOF
+# 2. 所有节点设置系统配置
+# 主master直接执行
+./setting.sh
+# 其余节点远程执行
+for((i=1;i<${#all_ip_arr[@]};i++))
+do
+  ssh root@${all_ip_arr[$i]} "cd $install_path; ./setting.sh"
+done
 
-if [ "`rpm -qa | grep kube`" == "" ];then
-  version="1.21.2-0"
-  yum install -y kubelet-$version.x86_64 kubeadm-$version.x86_64 kubectl-$version.x86_64 --disableexcludes=kubernetes
-  systemctl enable kubelet
-  systemctl daemon-reload
-fi
-systemctl enable --now kubelet
 
-# 1.4 引导集群master
-# coredns镜像需要特殊下载，因为阿里镜像不存在
-docker pull coredns/coredns:1.8.0
-docker tag coredns/coredns:1.8.0 registry.aliyuncs.com/google_containers/coredns:v1.8.0
+# 3. 所有节点安装docker
+# 主master直接执行
+./docker-install.sh
+# 其余节点远程执行
+for((i=1;i<${#all_ip_arr[@]};i++))
+do
+  ssh root@${all_ip_arr[$i]} "cd $install_path; ./docker-install.sh"
+done
 
-kubeadm init --config kube-config.yaml --v=5
 
-mkdir -p $HOME/.kube
-cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-chown $(id -u):$(id -g) $HOME/.kube/config
+# 4. 安装主节点
+# 主master直接执行
+./master-install.sh
+# 其余节点远程执行
+for((i=1;i<${#all_ip_arr[@]};i++))
+do
+  ssh root@${all_ip_arr[$i]} "cd $install_path; ./master-install.sh"
+done
 
-# 1.5 安装网络插件calico
+
+# 5. 第一个master节点安装网络插件并生成join.sh
+echo "主节点安装pod network"
+# 安装网络插件calico
 kubectl create -f https://docs.projectcalico.org/manifests/tigera-operator.yaml
 kubectl create -f https://docs.projectcalico.org/manifests/custom-resources.yaml
+
+# 生成join.sh
+echo "#!/bin/bash" > join.sh
+cat tmp.txt | grep "kubeadm join" >> join.sh
+  
+# 分发join.sh给其它node节点
+for((i=0;i<${#node_ip_arr[@]};i++))
+do
+  scp join.sh root@${node_ip_arr[$i]}:$install_path
+done
+
+
+# 5. 安装工作节点
+for((i=0;i<${#node_ip_arr[@]};i++))
+do
+  ssh root@${node_ip_arr[$i]} "cd $install_path; ./node-install.sh; chmod +x join.sh; ./join.sh"
+done
+
+
+# 6. 检查集群是否安装成功
+echo "检测是否安装成功："
+source ~/.bash_profile
+kubectl get pod --all-namespaces -o wide
