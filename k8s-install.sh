@@ -6,17 +6,28 @@ source ./kubernetes.conf
 master_ip_arr=(${master_ip//,/ })
 node_ip_arr=(${node_ip//,/ })
 all_ip_arr=(${master_ip_arr[@]} ${node_ip_arr[@]})
-hostname_arr=(${hostname//,/ })
+all_pwd_arr=(${master_pwd//,/ } ${node_pwd//,/ })
 # 主节点IP
 first_master_ip=${master_ip_arr[0]}
 install_path=`pwd`
 
-ssh-keygen -t rsa
+# 分发密钥，可以免密执行scp命令
+yum install -y expect
 for((i=1;i<${#all_ip_arr[@]};i++))
 do
-  ssh-copy-id -i ~/.ssh/id_rsa.pub ${all_ip_arr[$i]}
+  ./auto_ssh.sh root ${all_pwd_arr[$i]} ${all_ip_arr[$i]}
 done
 
+# 设置主机名
+hostnamectl set-hostname "master-1"
+for((i=1;i<${#master_ip_arr[@]};i++))
+do
+  ssh root@${master_ip_arr[$i]} "hostnamectl set-hostname master-$i"
+done
+for((i=0;i<${#node_ip_arr[@]};i++))
+do
+  ssh root@${node_ip_arr[$i]} "hostnamectl set-hostname node-`expr ${i} + 1`"
+done
 
 # 1. 分发安装脚本到其它服务器
 for((i=1;i<${#all_ip_arr[@]};i++))
