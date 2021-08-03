@@ -63,7 +63,7 @@ kubectl create -f https://docs.projectcalico.org/manifests/custom-resources.yaml
 
 # 生成join.sh
 echo "#!/bin/bash" > join.sh
-cat tmp.txt | grep "kubeadm join" >> join.sh
+grep -Pzo "kubeadm join .*\n.*--discovery-token-ca-cert-hash.*" tmp.txt >> join.sh
   
 # 分发join.sh给其它node节点
 for((i=0;i<${#node_ip_arr[@]};i++))
