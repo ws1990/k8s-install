@@ -2,13 +2,15 @@
 
 # 0. 读取并解析配置文件永远在最开始
 source ./kubernetes.conf
-# ip数组
+# master节点IP
 master_ip_arr=(${master_ip//,/ })
+# 工作节点IP
 node_ip_arr=(${node_ip//,/ })
+# 所有节点IP
 all_ip_arr=(${master_ip_arr[@]} ${node_ip_arr[@]})
+# 所有节点密码
 all_pwd_arr=(${master_pwd//,/ } ${node_pwd//,/ })
-# 主节点IP
-first_master_ip=${master_ip_arr[0]}
+# 工作目录
 install_path=`pwd`
 
 yum install -y expect
@@ -27,7 +29,7 @@ do
 done
 for((i=0;i<${#node_ip_arr[@]};i++))
 do
-  ssh root@${node_ip_arr[$i]} "hostnamectl set-hostname node`expr ${i} + 1` | echo \"$first_master_ip master1\" >> /etc/hosts"
+  ssh root@${node_ip_arr[$i]} "hostnamectl set-hostname node`expr ${i} + 1`"
 done
 
 # 1. 分发安装脚本到其它服务器
@@ -75,8 +77,8 @@ done
 # 5. 第一个master节点安装网络插件并生成join.sh
 echo "主节点安装pod network"
 # 安装网络插件calico
-kubectl create -f https://docs.projectcalico.org/manifests/tigera-operator.yaml
-kubectl create -f https://docs.projectcalico.org/manifests/custom-resources.yaml
+kubectl create -f ./network/tigera-operator.yaml
+kubectl create -f ./network/custom-resources.yaml
 
 # 生成join.sh
 echo "#!/bin/bash" > join.sh
