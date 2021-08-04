@@ -24,6 +24,10 @@ repo_gpgcheck=1
 gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
 EOF
 
+# coredns镜像需要特殊下载，因为阿里镜像不存在
+docker pull coredns/coredns:1.8.0
+docker tag coredns/coredns:1.8.0 registry.aliyuncs.com/google_containers/coredns:v1.8.0
+
 if [ "`rpm -qa | grep kube`" == "" ];then
   version="1.21.2-0"
   yum install -y kubelet-$version.x86_64 kubeadm-$version.x86_64 --disableexcludes=kubernetes
@@ -31,7 +35,3 @@ if [ "`rpm -qa | grep kube`" == "" ];then
   systemctl daemon-reload
 fi
 systemctl enable --now kubelet
-
-# 加入主节点
-chmod +x ./join.sh
-./join.sh

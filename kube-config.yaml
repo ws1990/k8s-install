@@ -13,7 +13,7 @@ localAPIEndpoint:
   bindPort: 6443
 nodeRegistration:
   criSocket: /var/run/dockershim.sock
-  name: node
+  name: master1
   taints: null
 ---
 apiServer:
