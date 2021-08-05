@@ -85,21 +85,25 @@ echo "#!/bin/bash" > join.sh
 grep -Pzo "kubeadm join .*\n.*--discovery-token-ca-cert-hash.*" tmp.txt >> join.sh
 sed -i '2iecho "KUBELET_EXTRA_ARGS=--node-ip=$1" > /etc/sysconfig/kubelet' join.sh
   
-# 分发join.sh给其它node节点
-for((i=0;i<${#node_ip_arr[@]};i++))
-do
-  echo "分发join.sh到工作节点: ${node_ip_arr[$i]}"
-  scp join.sh root@${node_ip_arr[$i]}:$install_path
-done
+# 如果所有的工作节点为空，则允许master节点运行pod（及单机模式）
+if [ ${#node_ip_arr[@]} -eq 0 ]; then
+  kubectl taint node master1 node-role.kubernetes.io/master-
+else
+  # 分发join.sh给其它node节点
+  for((i=0;i<${#node_ip_arr[@]};i++))
+  do
+    echo "分发join.sh到工作节点: ${node_ip_arr[$i]}"
+    scp join.sh root@${node_ip_arr[$i]}:$install_path
+  done
 
-
-# 5. 安装工作节点
-for((i=0;i<${#node_ip_arr[@]};i++))
-do
-  echo "安装工作节点: ${node_ip_arr[$i]}"
-  # 安装所需软件并加入集群；通过--node-ip指定网卡，否则多网卡环境下会报错
-  ssh root@${node_ip_arr[$i]} "cd $install_path; ./node-install.sh; chmod +x join.sh; ./join.sh ${node_ip_arr[$i]}"
-done
+  # 5. 安装工作节点
+  for((i=0;i<${#node_ip_arr[@]};i++))
+  do
+    echo "安装工作节点: ${node_ip_arr[$i]}"
+    # 安装所需软件并加入集群；通过--node-ip指定网卡，否则多网卡环境下会报错
+    ssh root@${node_ip_arr[$i]} "cd $install_path; ./node-install.sh; chmod +x join.sh; ./join.sh ${node_ip_arr[$i]}"
+  done
+fi
 
 
 # 6. 检查集群是否安装成功
