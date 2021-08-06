@@ -1,5 +1,6 @@
 #!/bin/bash
 
+is_delete_images=$1
 # 允许 iptables 检查桥接流量
 modprobe br_netfilter
 
@@ -32,11 +33,20 @@ if [ "`rpm -qa | grep kube`" == "" ];then
 fi
 systemctl enable --now kubelet
 
-# 引导集群master
-# coredns镜像需要特殊下载，因为阿里镜像不存在
-docker pull coredns/coredns:1.8.0
-docker tag coredns/coredns:1.8.0 registry.aliyuncs.com/google_containers/coredns:v1.8.0
+# 准备镜像
+if [ "`ls | grep images.tar`" == "" ];then
+  # coredns镜像需要特殊下载，因为阿里镜像不存在
+  docker pull coredns/coredns:1.8.0
+  docker tag coredns/coredns:1.8.0 registry.aliyuncs.com/google_containers/coredns:v1.8.0
+  docker rmi coredns/coredns:1.8.0
+else
+  docker load -i images.tar
+  if [ "$is_delete_images" == "Y" ];then
+    rm -f images.tar
+  fi
+fi
 
+# 引导集群master
 touch tmp.txt
 kubeadm init --config kube-config.yaml --v=5 | tee tmp.txt
 

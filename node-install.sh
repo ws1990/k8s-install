@@ -24,9 +24,9 @@ repo_gpgcheck=1
 gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
 EOF
 
-# coredns镜像需要特殊下载，因为阿里镜像不存在
-docker pull coredns/coredns:1.8.0
-docker tag coredns/coredns:1.8.0 registry.aliyuncs.com/google_containers/coredns:v1.8.0
+# 导入本地镜像
+docker load -i images.tar
+rm -f images.tar
 
 if [ "`rpm -qa | grep kube`" == "" ];then
   version="1.21.2-0"

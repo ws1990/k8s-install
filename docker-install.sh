@@ -7,8 +7,8 @@ cat <<EOF | tee /etc/docker/daemon.json
   "exec-opts": ["native.cgroupdriver=systemd"],
   "registry-mirrors": [
     "https://vspbbu1z.mirror.aliyuncs.com",
-    "https://registry.docker-cn.com",
     "https://docker.mirrors.ustc.edu.cn",
+    "https://reg-mirror.qiniu.com",
     "https://hub-mirror.c.163.com"
   ]
 }
